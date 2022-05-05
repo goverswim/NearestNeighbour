@@ -8,8 +8,34 @@
 ###############################################################################
 
 
+from sklearn import utils
 import util
 import matplotlib.pyplot as plt
+import numpy as np
+from time import time
+
+def numpy_single_nn(xtrain, xstest, k):
+    distances = xtrain - xstest
+    distances = np.power(distances, 2)
+    distances = np.sum(distances, axis=1)
+    distances = np.sqrt(distances)
+
+    queue =  dict()
+    max_distance = 0
+    for i, distance in enumerate(distances):
+        if len(queue) < k:
+            queue[distance] = i
+            max_distance = distance
+            continue
+        if distance < max_distance:
+            queue.pop(max_distance)
+            queue[distance] = i
+            max_distance = max(queue.keys())
+
+    distance_list, index_list = zip(*sorted(zip(queue.keys(), queue.values())))
+    return np.array(index_list), np.array(distance_list)
+
+
 
 def numpy_nn_get_neighbors(xtrain, xtest, k):
     """
@@ -22,7 +48,8 @@ def numpy_nn_get_neighbors(xtrain, xtest, k):
     """
     indices = np.zeros((xtest.shape[0], k), dtype=int)
     distances = np.zeros((xtest.shape[0], k), dtype=float)
-    
+    for i, x in enumerate(xtest):
+        indices[i], distances[i] = numpy_single_nn(xtrain, x, k)
     return indices, distances
 
 
@@ -30,8 +57,8 @@ def compute_accuracy(ytrue, ypredicted):
     """
     Return the fraction of correct predictions.
     """
-    acc = 0.0
-    return acc
+    correct_samples = np.sum(ytrue == ypredicted)
+    return correct_samples / len(ytrue)
 
 def time_and_accuracy_task(dataset, k, n, seed):
     """
@@ -53,7 +80,11 @@ def time_and_accuracy_task(dataset, k, n, seed):
     # in `xsample`. Then compute the accuracy with your implementation of
     # `compute_accuracy` above using the true labels `ysample` and your
     # predicted values.
-
+    
+    classifiers = {"npnn":npnn, "sknn":sknn}
+    for clf_name in classifiers:
+        predictions, times[clf_name] = classifiers[clf_name].timed_classify(xsample, k)
+        accuracies[clf_name] = compute_accuracy(ysample, predictions)
 
     return accuracies, times
 
@@ -70,8 +101,9 @@ def distance_absolute_error_task(dataset, k, n, seed):
     pqnn, _, sknn = util.get_nn_instances(dataset, xtrain, ytrain,
             cache_partitions=True)
 
-    mean_abs_dist = 0.0 # TODO compute this value
-
+    _, sknn_prediction = sknn.get_neighbors(xsample, k)
+    _, pqnn_prediction = pqnn.get_neighbors(xsample, k)
+    mean_abs_dist = np.mean(np.abs(sknn_prediction - pqnn_prediction))
 
     return mean_abs_dist
 
@@ -92,8 +124,12 @@ def retrieval_task(dataset, k, n, seed):
     retrieval_rate = 0.0 # none present in top-k of ProdQuanNN
 
     # TODO compute retrieval_rate
-
-
+    pqnn, _, sknn = util.get_nn_instances(dataset, xtrain, ytrain, cache_partitions=True)
+    pqnn_idx, _ = pqnn.get_neighbors(xsample, k)
+    sknn_idx, _ = sknn.get_neighbors(xsample, 1)
+    
+    matches = (pqnn_idx == sknn_idx)
+    retrieval_rate = np.sum(matches) / len(matches)
     return retrieval_rate
 
 def hyperparam_task(dataset, k, n, seed):
