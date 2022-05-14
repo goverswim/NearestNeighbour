@@ -81,7 +81,7 @@ def time_and_accuracy_task(dataset, k, n, seed):
     # `compute_accuracy` above using the true labels `ysample` and your
     # predicted values.
     
-    classifiers = {"npnn":npnn, "sknn":sknn}
+    classifiers = {"npnn":npnn, "sknn":sknn, "pqnn":pqnn}
     for clf_name in classifiers:
         predictions, times[clf_name] = classifiers[clf_name].timed_classify(xsample, k)
         accuracies[clf_name] = compute_accuracy(ysample, predictions)

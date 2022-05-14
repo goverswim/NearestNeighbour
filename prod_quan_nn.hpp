@@ -163,6 +163,13 @@ namespace bdap {
         // Implement them in 'prod_quan_nn.cpp'
         //
         // ========================================================================
+
+        std::vector<std::vector<float>> clusterDistance;
+        void compute_nearest_single(
+                const pydata<float>& examples,
+                int nneighbors,
+                pydata<int>& out_index,
+                pydata<float>& out_distance, int index, std::vector<std::vector<float>>& clusterDistance) const;
     };
 
 
