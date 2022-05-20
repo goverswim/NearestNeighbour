@@ -16,6 +16,7 @@
 #include <chrono>
 #include <cmath>
 #include <unordered_map>
+#include <map>
 
 namespace bdap {
 
@@ -44,41 +45,71 @@ namespace bdap {
         for (int i = 0; i < this->npartitions(); i++){
             clusterDistance.push_back( std::vector<float>(this->nclusters(i)));
         }
-        std::cout << "test";
+
         for (int i = 0; i < examples.nrows; i++){
             this->compute_nearest_single(examples, nneighbors, out_index, out_distance, i, clusterDistance);
         }
-        
-        //std::cout << "Compute the nearest neighbors for the "
-        //    << examples.nrows
-        //    << " given examples." << std::endl
-
-        //    << "The examples are given in C-style row-major order, that is," << std::endl
-        //    << "the values of a row are consecutive in memory." << std::endl
-
-        //    << "The 5th example can be fetched as follows:" << std::endl;
-
-        //float const *ptr = examples.ptr(5, 0);
-        //std::cout << '[';
-        //for (size_t i = 0; i < examples.ncols; ++i) {
-        //    if (i>0) std::cout << ",";
-        //    if (i>0 && i%5==0) std::cout << std::endl << ' ';
-        //    printf("%11f", ptr[i]);
-        //}
-        //std::cout << " ]" << std::endl;
-
 
 
     }
+
+
     void ProdQuanNN::compute_nearest_single(const pydata<float>& examples, int nneighbors, pydata<int>& out_index, pydata<float>& out_distance, int index,
     std::vector<std::vector<float>>& clusterDistance) const{
-        const float* ptr = this->centroid(0, 0);
+        // Initialize the distance to each cluster
         for (int p = 0; p < this->npartitions(); p++){
             for (int c = 0; c < this->nclusters(p); c++){
-                
+                clusterDistance[p][c] = this->distance_to_cluster(examples, index, p, c);
             }
         }
-        clusterDistance[0][0] = examples.get_elem(index, 0) + *(this->centroid(0, 0));
-        std::cout << clusterDistance[0][0];
+
+        // KNN
+        std::map<float, int> queue;
+        float max_distance = 0;
+        for (int i=0; i < this->ntrain_examples(); i++){
+            float distance = this->distance_to_label(i, clusterDistance);
+            if (queue.size() < nneighbors){
+                queue[distance] = i;
+                max_distance = std::max(max_distance, distance);
+            } else if (distance < max_distance){
+                queue.erase(queue.rbegin()->first);
+                queue[distance] = i;
+                max_distance = queue.rbegin()->first;
+            }
+        }
+        //std::cout << "\n" << this->ntrain_examples() << " " << this->npartitions();
+        
+        int neighbor = 0;
+        
+        for ( auto it = queue.begin(); it != queue.end(); ++it ){
+            float dist = it->first;
+            int neighbor_index = it->second;
+            out_index.set_elem(index, neighbor, std::move(neighbor_index));
+            out_distance.set_elem(index, neighbor, std::move(dist));
+            neighbor++;
+        }
+    }
+
+
+    float ProdQuanNN::distance_to_cluster(const pydata<float>& examples, int example_index, size_t partition, size_t cluster) const{
+        const float* ptr = this->centroid(partition, cluster);
+        int begin_feature = this->feat_begin(partition);
+        float distance = 0;
+        for (int i = begin_feature; i <  this->feat_end(partition); i++){
+            distance += std::pow(*(ptr + (i - begin_feature)) - examples.get_elem(example_index, i), 2);
+        }
+        distance = std::sqrt(distance);
+        return distance;
+    }
+
+    float ProdQuanNN::distance_to_label(size_t label_index, std::vector<std::vector<float>>& clusterDistance) const{
+        float distance = 0;
+        for (int p = 0; p < this->npartitions(); p++){
+            
+            int cluster = *(this->labels(p)+ label_index);
+
+            distance += clusterDistance[p][cluster];
+        }
+        return distance;
     }
 } // namespace bdap

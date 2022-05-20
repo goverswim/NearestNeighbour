@@ -25,7 +25,7 @@ def numpy_single_nn(xtrain, xstest, k):
     for i, distance in enumerate(distances):
         if len(queue) < k:
             queue[distance] = i
-            max_distance = distance
+            max_distance = max(distance, max_distance)
             continue
         if distance < max_distance:
             queue.pop(max_distance)
@@ -71,7 +71,7 @@ def time_and_accuracy_task(dataset, k, n, seed):
     xtrain, xtest, ytrain, ytest = util.load_dataset(dataset)
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
     pqnn, npnn, sknn = util.get_nn_instances(dataset, xtrain, ytrain,
-            cache_partitions=True)
+            cache_partitions=False)
 
     accuracies = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
     times = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
@@ -84,7 +84,9 @@ def time_and_accuracy_task(dataset, k, n, seed):
     classifiers = {"npnn":npnn, "sknn":sknn, "pqnn":pqnn}
     for clf_name in classifiers:
         predictions, times[clf_name] = classifiers[clf_name].timed_classify(xsample, k)
+        print(predictions)
         accuracies[clf_name] = compute_accuracy(ysample, predictions)
+    
 
     return accuracies, times
 
