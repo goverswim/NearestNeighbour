@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from nn import *
 
 BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = "data" # relative to BASE_DIR, dir of this file
+DATA_DIR = "/cw/bdap/assignment3/" # relative to BASE_DIR, dir of this file
 
 DATASETS = {
     "covtype"    : "covtype.gz",

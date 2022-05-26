@@ -173,12 +173,12 @@ namespace bdap {
                 int index, 
                 std::vector<std::vector<float>>& clusterDistance) const;
 
-        float ProdQuanNN::distance_to_cluster(
+        float distance_to_cluster(
                 const pydata<float>& examples, 
                 int example_index, 
                 size_t partition, 
                 size_t cluster) const;
-        float ProdQuanNN::distance_to_label(
+        float distance_to_label(
             size_t label_index,
             std::vector<std::vector<float>>& clusterDistance
         ) const;
