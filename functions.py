@@ -8,6 +8,7 @@
 ###############################################################################
 
 
+from numpy.core.fromnumeric import partition
 from sklearn import utils
 import util
 import matplotlib.pyplot as plt
@@ -70,8 +71,7 @@ def time_and_accuracy_task(dataset, k, n, seed):
     """
     xtrain, xtest, ytrain, ytest = util.load_dataset(dataset)
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
-    pqnn, npnn, sknn = util.get_nn_instances(dataset, xtrain, ytrain,
-            cache_partitions=False)
+    pqnn, npnn, sknn = util.get_nn_instances(dataset, xtrain, ytrain)
 
     accuracies = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
     times = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
@@ -125,12 +125,13 @@ def retrieval_task(dataset, k, n, seed):
     retrieval_rate = 1.0 # all present in top-k of ProdQuanNN
     retrieval_rate = 0.0 # none present in top-k of ProdQuanNN
 
-    # TODO compute retrieval_rate
+
     pqnn, _, sknn = util.get_nn_instances(dataset, xtrain, ytrain, cache_partitions=True)
     pqnn_idx, _ = pqnn.get_neighbors(xsample, k)
     sknn_idx, _ = sknn.get_neighbors(xsample, 1)
     
     matches = (pqnn_idx == sknn_idx)
+    print(pqnn_idx, sknn_idx)
     retrieval_rate = np.sum(matches) / len(matches)
     return retrieval_rate
 
@@ -152,6 +153,38 @@ def hyperparam_task(dataset, k, n, seed):
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
 
     # TODO optimize the hyper parameters of ProdQuanNN and produce plot
+    partition_range = [1, 2, 4, 10]
+    cluster_range = [1, 2, 4, 10]
+
+    accuracy_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
+    time_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
+    for p in partition_range:
+        for c in cluster_range:
+            pqnn, _, _ = util.get_nn_instances(dataset, xtrain, ytrain, npartitions=p, nclusters=c, cache_partitions=False)
+            predictions, exec_time = pqnn.timed_classify(xsample, k)
+            
+            accuracy_data[p][c] = compute_accuracy(ysample, predictions) * 100
+            time_data[p][c] = exec_time
+
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+    cmap_acc = plt.cm.viridis.with_extremes(under="w")
+    im_acc = ax1.imshow(accuracy_data, cmap=cmap_acc, vmin=0, vmax=100, origin="lower")
+    cbar = fig.colorbar(im_acc, ax=ax1, fraction=0.047)
+    cbar.set_label('Accuracy (%)')
+    ax1.set_xlabel("amount of clusters")
+    ax1.set_ylabel("amount of partititions")
+    ax1.set_title("Impact of hyperparameters on accuracy")
+
+    cmap_time = plt.cm.viridis.with_extremes(under="w")
+    im_time = ax2.imshow(time_data, cmap=cmap_time, vmin=0, origin="lower")
+    cbar_time = fig.colorbar(im_time, ax=ax2, fraction=0.047)
+    cbar_time.set_label('time (s)')
+    ax2.set_xlabel("amount of clusters")
+    ax2.set_ylabel("amount of partititions")
+    ax2.set_title("Impact of hyperparameters on inference time")
+    
+    fig.tight_layout()
+    plt.show()
 
 
 def plot_task(dataset, k, n, seed):
