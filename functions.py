@@ -135,6 +135,12 @@ def retrieval_task(dataset, k, n, seed):
     retrieval_rate = np.sum(matches) / len(matches)
     return retrieval_rate
 
+def fix_partition_count(n_partitions, n_features):
+    step_size = int(np.ceil(n_features / n_partitions))
+    if step_size * (n_partitions-1) <= n_features - 2:
+        return n_partitions
+    return fix_partition_count(n_partitions - 1, n_features)
+
 def hyperparam_task(dataset, k, n, seed):
     """
     Optimize the hyper-parameters `npartitions` and  `nclusters` of ProdQuanNN.
@@ -153,13 +159,19 @@ def hyperparam_task(dataset, k, n, seed):
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
 
     # TODO optimize the hyper parameters of ProdQuanNN and produce plot
-    partition_range = [1, 2, 4, 10]
-    cluster_range = [1, 2, 4, 10]
+    print(xsample.shape)
+    partition_range = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    cluster_range = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+
+    # Partition of 1 fix:
+    n_features = xsample.shape[1]
+    partition_range = [fix_partition_count(x, n_features) for x in partition_range]
 
     accuracy_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
     time_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
-    for p in partition_range:
-        for c in cluster_range:
+    for c in cluster_range:
+        for p in partition_range:
+            print("Clusters:", c, "|", "Partitions:", p)
             pqnn, _, _ = util.get_nn_instances(dataset, xtrain, ytrain, npartitions=p, nclusters=c, cache_partitions=False)
             predictions, exec_time = pqnn.timed_classify(xsample, k)
             
