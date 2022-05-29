@@ -159,40 +159,52 @@ def hyperparam_task(dataset, k, n, seed):
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
 
     # TODO optimize the hyper parameters of ProdQuanNN and produce plot
-    print(xsample.shape)
-    partition_range = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-    cluster_range = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    partition_range = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    cluster_range = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
     # Partition of 1 fix:
-    n_features = xsample.shape[1]
+    n_train_samples, n_features = xsample.shape
+    partition_range = list(filter(lambda x: x < n_features, partition_range))
+    cluster_range = list(filter(lambda x: x < n_train_samples, cluster_range))
     partition_range = [fix_partition_count(x, n_features) for x in partition_range]
 
-    accuracy_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
-    time_data = np.full((max(partition_range) + 1, max(cluster_range) + 1), -1.0)
-    for c in cluster_range:
-        for p in partition_range:
+    accuracy_data = np.full((len(partition_range), len(cluster_range)), -1.0)
+    time_data = np.full((len(partition_range), len(cluster_range)), -1.0)
+    for j, c in enumerate(cluster_range):
+        for i, p in enumerate(partition_range):
             print("Clusters:", c, "|", "Partitions:", p)
             pqnn, _, _ = util.get_nn_instances(dataset, xtrain, ytrain, npartitions=p, nclusters=c, cache_partitions=False)
             predictions, exec_time = pqnn.timed_classify(xsample, k)
             
-            accuracy_data[p][c] = compute_accuracy(ysample, predictions) * 100
-            time_data[p][c] = exec_time
+            accuracy_data[i][j] = compute_accuracy(ysample, predictions) * 100
+            time_data[i][j] = exec_time
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
     cmap_acc = plt.cm.viridis.with_extremes(under="w")
     im_acc = ax1.imshow(accuracy_data, cmap=cmap_acc, vmin=0, vmax=100, origin="lower")
     cbar = fig.colorbar(im_acc, ax=ax1, fraction=0.047)
     cbar.set_label('Accuracy (%)')
-    ax1.set_xlabel("amount of clusters")
-    ax1.set_ylabel("amount of partititions")
+    ax1.set_xlabel("number of clusters")
+    ax1.set_ylabel("number of partititions")
+    ax1.set_xticks(range(0, len(cluster_range)))
+    ax1.set_yticks(range(0, len(partition_range)))
+    ax1.set_xticklabels(cluster_range)
+    ax1.set_yticklabels(partition_range)
+    for (j,i),value in np.ndenumerate(accuracy_data):
+        rounded = round(value * 100) / 100
+        ax1.text(i,j,rounded,ha='center',va='center')
     ax1.set_title("Impact of hyperparameters on accuracy")
 
     cmap_time = plt.cm.viridis.with_extremes(under="w")
     im_time = ax2.imshow(time_data, cmap=cmap_time, vmin=0, origin="lower")
     cbar_time = fig.colorbar(im_time, ax=ax2, fraction=0.047)
     cbar_time.set_label('time (s)')
-    ax2.set_xlabel("amount of clusters")
-    ax2.set_ylabel("amount of partititions")
+    ax2.set_xlabel("number of clusters")
+    ax2.set_ylabel("number of partititions")
+    ax2.set_xticks(range(0, len(cluster_range)))
+    ax2.set_yticks(range(0, len(partition_range)))
+    ax2.set_xticklabels(cluster_range)
+    ax2.set_yticklabels(partition_range)
     ax2.set_title("Impact of hyperparameters on inference time")
     
     fig.tight_layout()
