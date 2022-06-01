@@ -128,10 +128,14 @@ def retrieval_task(dataset, k, n, seed):
 
     pqnn, _, sknn = util.get_nn_instances(dataset, xtrain, ytrain, cache_partitions=True)
     pqnn_idx, _ = pqnn.get_neighbors(xsample, k)
-    sknn_idx, _ = sknn.get_neighbors(xsample, 1)
+    _, sknn_dist = sknn.get_neighbors(xsample, 1)
+
+    pqnn_true_dist = np.take(xtrain, pqnn_idx, axis=0)
+    pqnn_true_dist = (pqnn_true_dist- xsample[:,None,:])**2
+    pqnn_true_dist = np.sum(pqnn_true_dist, axis=-1)
+    pqnn_true_dist = np.sqrt(pqnn_true_dist)
     
-    matches = (pqnn_idx == sknn_idx)
-    print(pqnn_idx, sknn_idx)
+    matches = (pqnn_true_dist == sknn_dist)
     retrieval_rate = np.sum(matches) / len(matches)
     return retrieval_rate
 
