@@ -98,7 +98,6 @@ namespace bdap {
         for (int i = begin_feature; i < (int) this->feat_end(partition); i++){
             distance += std::pow(*(ptr + (i - begin_feature)) - examples.get_elem(example_index, i), 2);
         }
-        distance = std::sqrt(distance);
         return distance;
     }
 
@@ -110,6 +109,6 @@ namespace bdap {
 
             distance += clusterDistance[p][cluster];
         }
-        return distance;
+        return std::sqrt(distance);
     }
 } // namespace bdap
