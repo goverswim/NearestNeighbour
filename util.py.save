@@ -16,24 +16,24 @@ DATASETS = {
 
 PROD_QUAN_SETTINGS = {
     "covtype"   : {
-        "nclusters"   : 256,
-        "npartitions" : 32,
+        "nclusters"   : 255,
+   2     "npartitions" : 10,
     },
     "emnist"    : {
-        "nclusters"   : 256,
-        "npartitions" : 32,
+        "nclusters"   : 255,
+        "npartitions" : 47,
     },
     "emnist_orig"    : {
-        "nclusters"   : 256,
-        "npartitions" : 32,
+        "nclusters"   : 255,
+        "npartitions" : 28,
     },
     "higgs"     : {
-        "nclusters"   : 256,
-        "npartitions" : 25,
+        "nclusters"   : 255,
+        "npartitions" : 5,
     },
     "spambase"  : {
-        "nclusters"   : 256,
-        "npartitions" : 32,
+        "nclusters"   : 8,
+        "npartitions" : 4,
     },
 }
 
