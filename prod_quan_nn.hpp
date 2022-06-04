@@ -164,7 +164,6 @@ namespace bdap {
         //
         // ========================================================================
 
-        std::vector<std::vector<float>> clusterDistance;
         void compute_nearest_single(
                 const pydata<float>& examples,
                 int nneighbors,

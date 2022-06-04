@@ -29,9 +29,6 @@ namespace bdap {
     ProdQuanNN::initialize_method()
     {
         //std::cout << "Construct auxiliary structures here" << std::endl;
-        for (int i = 0; i < (int) this->npartitions(); i++){
-            this->clusterDistance.push_back( std::vector<float>(this->nclusters(i)));
-        }
     }
 
     void
