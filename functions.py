@@ -1,21 +1,22 @@
 # author: Laurens Devos
 # Copyright BDAP team, DO NOT REDISTRIBUTE
 
-###############################################################################
-#                                                                             #
-#                  TODO: Implement the functions in this file                 #
-#                                                                             #
-###############################################################################
 
-
-from numpy.core.fromnumeric import partition
-from sklearn import utils
 import util
 import matplotlib.pyplot as plt
 import numpy as np
-from time import time
 
 def numpy_single_nn(xtrain, xstest, k):
+    """Comlputes the nearest neighbour for a single test sample
+
+    Args:
+        xtrain (np.ndarray): training samples, shape (#train_samples, #features)
+        xstest (_type_): test sampl, shape (#features)
+        k (int): amount of neighbours to return
+
+    Returns:
+        tuple(nd.ndarray, np.ndarray): indices and distances of the K neighbours
+    """
     distances = xtrain - xstest
     distances = np.power(distances, 2)
     distances = np.sum(distances, axis=1)
@@ -75,18 +76,11 @@ def time_and_accuracy_task(dataset, k, n, seed):
 
     accuracies = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
     times = { "pqnn": 0.0, "npnn": 0.0, "sknn": 0.0 }
-
-    # TODO use the methods in the base class `BaseNN` to classify the instances
-    # in `xsample`. Then compute the accuracy with your implementation of
-    # `compute_accuracy` above using the true labels `ysample` and your
-    # predicted values.
     
     classifiers = {"npnn":npnn, "sknn":sknn, "pqnn":pqnn}
     for clf_name in classifiers:
         predictions, times[clf_name] = classifiers[clf_name].timed_classify(xsample, k)
-        print(predictions)
         accuracies[clf_name] = compute_accuracy(ysample, predictions)
-    
 
     return accuracies, times
 
@@ -120,7 +114,7 @@ def retrieval_task(dataset, k, n, seed):
     Return a single real value between 0 and 1.
     """
     xtrain, xtest, ytrain, ytest = util.load_dataset(dataset)
-    xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
+    xsample, _ = util.sample_xtest(xtest, ytest, n, seed)
 
     retrieval_rate = 1.0 # all present in top-k of ProdQuanNN
     retrieval_rate = 0.0 # none present in top-k of ProdQuanNN
@@ -139,7 +133,19 @@ def retrieval_task(dataset, k, n, seed):
     retrieval_rate = np.sum(matches) / len(matches)
     return retrieval_rate
 
+
 def fix_partition_count(n_partitions, n_features):
+    """
+    Due to the np.ceil in the partition division code, the start of the last partition might be out of bounds.
+    This function will return a (lower) n_partitions that does not suffer from this effect.
+
+    Args:
+        n_partitions (int): number of partitions desired
+        n_features (int): number of features in the dataset
+
+    Returns:
+        int: highest number of partition that will not cause an error, less or equal to n_partitions
+    """
     step_size = int(np.ceil(n_features / n_partitions))
     if step_size * (n_partitions-1) <= n_features - 2:
         return n_partitions
@@ -162,16 +168,16 @@ def hyperparam_task(dataset, k, n, seed):
     xtrain, xtest, ytrain, ytest = util.load_dataset(dataset)
     xsample, ysample = util.sample_xtest(xtest, ytest, n, seed)
 
-    # TODO optimize the hyper parameters of ProdQuanNN and produce plot
-    partition_range = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    partition_range = [1, 2, 4, 8, 16, 32, 64, 128]
     cluster_range = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
-    # Partition of 1 fix:
+    # Partition out of bounds fix fix:
     n_train_samples, n_features = xsample.shape
     partition_range = list(filter(lambda x: x < n_features, partition_range))
     cluster_range = list(filter(lambda x: x < n_train_samples, cluster_range))
     partition_range = [fix_partition_count(x, n_features) for x in partition_range]
 
+    # Hyperparameter tuning
     accuracy_data = np.full((len(partition_range), len(cluster_range)), -1.0)
     time_data = np.full((len(partition_range), len(cluster_range)), -1.0)
     for j, c in enumerate(cluster_range):
@@ -183,6 +189,7 @@ def hyperparam_task(dataset, k, n, seed):
             accuracy_data[i][j] = compute_accuracy(ysample, predictions) * 100
             time_data[i][j] = exec_time
 
+    # Accuracy plot
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
     cmap_acc = plt.cm.viridis.with_extremes(under="w")
     im_acc = ax1.imshow(accuracy_data, cmap=cmap_acc, vmin=0, vmax=100, origin="lower")
@@ -199,6 +206,7 @@ def hyperparam_task(dataset, k, n, seed):
         ax1.text(i,j,rounded,ha='center',va='center')
     ax1.set_title("Impact of hyperparameters on accuracy")
 
+    # Time plot
     cmap_time = plt.cm.viridis.with_extremes(under="w")
     im_time = ax2.imshow(time_data, cmap=cmap_time, vmin=0, origin="lower")
     cbar_time = fig.colorbar(im_time, ax=ax2, fraction=0.047)

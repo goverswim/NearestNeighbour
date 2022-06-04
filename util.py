@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from nn import *
 
 BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = "/cw/bdap/assignment3" # relative to BASE_DIR, dir of this file
+DATA_DIR = "./data" # relative to BASE_DIR, dir of this file
 
 DATASETS = {
     "covtype"    : "covtype.gz",
@@ -17,7 +17,7 @@ DATASETS = {
 PROD_QUAN_SETTINGS = {
     "covtype"   : {
         "nclusters"   : 256,
-        "npartitions" : 32,
+        "npartitions" : 63,
     },
     "emnist"    : {
         "nclusters"   : 256,
@@ -25,7 +25,7 @@ PROD_QUAN_SETTINGS = {
     },
     "emnist_orig"    : {
         "nclusters"   : 256,
-        "npartitions" : 32,
+        "npartitions" : 16,
     },
     "higgs"     : {
         "nclusters"   : 256,
@@ -33,7 +33,7 @@ PROD_QUAN_SETTINGS = {
     },
     "spambase"  : {
         "nclusters"   : 256,
-        "npartitions" : 32,
+        "npartitions" : 7,
     },
 }
 

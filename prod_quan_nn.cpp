@@ -41,6 +41,13 @@ namespace bdap {
                 pydata<int>& out_index,
                 pydata<float>& out_distance) const
     {
+        /*
+        * Compute the nearest neighbours of the examples using PQNN
+        * examples: the examples with features that require their NN
+        * nneighbors: the number of neighbours for a sample
+        * out_index: empty matrix to place the indexes of the neighbours in
+        * out_distance: empty matrix to place the distances to the neighbours in
+        */
         std::vector<std::vector<float>> clusterDistance;
         for (int i = 0; i < (int) this->npartitions(); i++){
             clusterDistance.push_back( std::vector<float>(this->nclusters(i)));
@@ -56,6 +63,17 @@ namespace bdap {
 
     void ProdQuanNN::compute_nearest_single(const pydata<float>& examples, int nneighbors, pydata<int>& out_index, pydata<float>& out_distance, int index,
     std::vector<std::vector<float>>& clusterDistance) const{
+        /*
+        * Compute the nearest neighbours of a single sample
+        * 
+        * examples: examples containing the sample
+        * nneighbors: the amount of nearest neighbours required
+        * out_index: matrix to place the indices of the neighbours
+        * out_distance: matrix to place the distance to the neighbours
+        * index: index of the sample in examples
+        * clusterDistance: matrix to place the distance of the sample to each cluster
+        */
+
         // Initialize the distance to each cluster
         for (int p = 0; p < (int) this->npartitions(); p++){
             for (int c = 0; c < (int) this->nclusters(p); c++){
@@ -77,7 +95,6 @@ namespace bdap {
                 max_distance = queue.rbegin()->first;
             }
         }
-        //std::cout << "\n" << this->ntrain_examples() << " " << this->npartitions();
         
         int neighbor = 0;
         
@@ -92,6 +109,16 @@ namespace bdap {
 
 
     float ProdQuanNN::distance_to_cluster(const pydata<float>& examples, int example_index, size_t partition, size_t cluster) const{
+        /*
+        * Get the distance of a sample to a given cluster
+        * 
+        * examples: matrix containing the sample
+        * example_index: index of the sample in examples
+        * partition: index of the partition of the cluster
+        * cluster: index of the cluster (inside a partition)
+        * 
+        * return float: the distance of the sample to a cluster
+        */
         const float* ptr = this->centroid(partition, cluster);
         int begin_feature = this->feat_begin(partition);
         float distance = 0;
@@ -102,6 +129,14 @@ namespace bdap {
     }
 
     float ProdQuanNN::distance_to_label(size_t label_index, std::vector<std::vector<float>>& clusterDistance) const{
+        /*
+        * Get the distance between a given test sample and a given label/training sample
+        * 
+        * label_index: index of the label sample
+        * clusterDistance: matrix with the distance of the test sample to each cluster
+        * 
+        * return float: approximated distance of the test sample to the train sample
+        */
         float distance = 0;
         for (int p = 0; p < (int) this->npartitions(); p++){
             
